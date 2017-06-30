@@ -47,14 +47,71 @@ void ConfigManager::handleAPGet() {
     File f = SPIFFS.open(apFilename, "r");
     if (!f) {
         Serial.println("file open failed");
-        server->send(404, "text/html", "File not found");
+        server->send(500, "text/html", "File not found");
         return;
     }
 
     String content = f.readString();
-    server->send(200, "text/html", content);
+    server->send(500, "text/html", content);
 
     f.close();
+}
+
+void ConfigManager::reset() {
+    int count = 0;
+    while(digitalRead(PIN_RESET)){
+        if(digitalRead(PIN_RESET)) {
+        Serial.println("Pressed");
+        count++;
+        digitalWrite(LED, LOW);
+        delay(50);
+        digitalWrite(LED, HIGH);
+        delay(50);
+        digitalWrite(LED, LOW);
+        delay(50);
+        digitalWrite(LED, HIGH);
+        delay(50);
+        digitalWrite(LED, LOW);
+        delay(50);
+        digitalWrite(LED, HIGH);
+        delay(50);
+        digitalWrite(LED, LOW);
+        delay(50);
+        digitalWrite(LED, HIGH);
+        delay(50);
+        digitalWrite(LED, LOW);
+        delay(50);
+        digitalWrite(LED, HIGH);
+        delay(50);
+        digitalWrite(LED, LOW);
+        delay(50);
+        digitalWrite(LED, HIGH);
+        delay(50);
+        digitalWrite(LED, LOW);
+        delay(50);
+        digitalWrite(LED, HIGH);
+        delay(50);
+        digitalWrite(LED, LOW);
+        delay(50);
+        digitalWrite(LED, HIGH);
+        delay(50);
+        digitalWrite(LED, LOW);
+        delay(50);
+        digitalWrite(LED, HIGH);
+        delay(50);
+        if (count > 4) {
+            EEPROM.put(0, "BasicSSID");
+            EEPROM.put(32, "BasicPASSWORD");
+            EEPROM.commit();
+            delay(1000);
+            digitalWrite(LED, LOW);
+            //ESP.restart();
+            startAP();
+        }
+        } else {
+            count = 0;
+        }
+    }
 }
 
 void ConfigManager::handleAPPost() {
@@ -85,9 +142,7 @@ void ConfigManager::handleAPPost() {
     EEPROM.put(0, ssidChar);
     EEPROM.put(32, passwordChar);
     EEPROM.commit();
-
-    server->send(204, "text/plain", "Saved. Will attempt to reboot.");
-
+    server->send(201, "text/plain", "Saved. Will attempt to reboot.");
     ESP.restart();
 }
 
@@ -137,8 +192,8 @@ void ConfigManager::handleNotFound() {
 
 bool ConfigManager::wifiConnected() {
     Serial.print("Waiting for WiFi to connect");
-
-    int i = 0;
+    pinMode(PIN_RESET, INPUT);
+    /*int i = 0;
     while (i < 20) {
         if (WiFi.status() == WL_CONNECTED) {
             Serial.println("");
@@ -154,7 +209,19 @@ bool ConfigManager::wifiConnected() {
     Serial.println("");
     Serial.println("Connection timed out");
 
-    return false;
+    return false;*/
+
+    while(WiFi.status() != WL_CONNECTED){
+        reset();
+        Serial.println("Not connected to wifi, attemping to connect in 1 seconds again");
+        delay(1000);
+    }
+
+    if (WiFi.status() == WL_CONNECTED) {
+            Serial.println("");
+            Serial.println("connected");
+            return true;
+    }
 }
 
 void ConfigManager::setup() {
@@ -181,7 +248,7 @@ void ConfigManager::setup() {
         }
     }
 
-    startAP();
+    //startAP();
 }
 
 void ConfigManager::startAP() {

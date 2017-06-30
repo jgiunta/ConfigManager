@@ -1,6 +1,9 @@
 #ifndef __CONFIGMANAGER_H__
 #define __CONFIGMANAGER_H__
 
+#define LED 2
+#define PIN_RESET 5
+
 #include <DNSServer.h>
 #include <EEPROM.h>
 #include <ESP8266WiFi.h>
@@ -9,6 +12,7 @@
 #include <functional>
 #include <list>
 #include "ArduinoJson.h"
+
 
 /**
  * Base Parameter
@@ -111,6 +115,7 @@ public:
         parameters.push_back(new ConfigStringParameter(name, variable, size));
     }
     void save();
+    void reset();
 
 private:
     void *config;
