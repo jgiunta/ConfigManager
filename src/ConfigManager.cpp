@@ -106,6 +106,27 @@ void ConfigManager::handleRESTGet() {
     server->send(200, "application/json", body);
 }
 
+void ConfigManager::handleAPListGet() {
+  int networksFound = WiFi.scanNetworks(false, true);
+	JsonObject& root = jsonBuffer.createObject();
+	JsonArray& ssidArray = root.createNestedArray("network_descriptions");
+	root["networks"] = networksFound;
+	for (int i = 0; i < networksFound; i++)
+	{
+		// To prevent watchdog killing us during printing
+		delay(1);
+
+		JsonObject& ssid = ssidArray.createNestedObject();
+		ssid["essid"] = WiFi.SSID(i);
+		ssid["bssid"] = WiFi.BSSIDstr(i);
+		ssid["channel"] = WiFi.channel(i);
+		ssid["rssi"] = WiFi.RSSI(i);
+		ssid["security"] = encTypeToString(WiFi.encryptionType(i));
+	}
+	root.printTo(Serial);
+	server->send(200, "application/json", root);
+}
+
 void ConfigManager::handleRESTPut() {
     JsonObject& obj = this->decodeJson(server->arg("plain"));
     if (!obj.success()) {
@@ -205,6 +226,7 @@ void ConfigManager::startAP() {
     server->collectHeaders(headerKeys, headerKeysSize);
     server->on("/", HTTPMethod::HTTP_GET, std::bind(&ConfigManager::handleAPGet, this));
     server->on("/", HTTPMethod::HTTP_POST, std::bind(&ConfigManager::handleAPPost, this));
+    server->on("/aplist", HTTPMethod::HTTP_GET, std::bind(&ConfigManager::handleAPListGet, this));
     server->onNotFound(std::bind(&ConfigManager::handleNotFound, this));
     server->begin();
 
@@ -267,4 +289,23 @@ String ConfigManager::toStringIP(IPAddress ip) {
   }
   res += String(((ip >> 8 * 3)) & 0xFF);
   return res;
+}
+
+char* encTypeToString(int encType) {
+  if (encType == ENC_TYPE_NONE) {
+    return "none";
+  }
+  if (encType == ENC_TYPE_WEP) {
+    return "wep";
+  }
+  if (encType == ENC_TYPE_TKIP) {
+    return "wpa_psk";
+  }
+  if (encType == ENC_TYPE_CCMP) {
+    return "wpa2_psk";
+  }
+  if (encType == ENC_TYPE_AUTO) {
+    return "wpa_wpa2_psk";
+  }
+  return "wpa2_enterprise";
 }
